@@ -209,7 +209,7 @@ class Decoder(nn.Module):
         final_output_argmax = argmax_out[:, 1:]     # Remove the start token from the output
 
         
-        return final_output_softmax, argmax_out, offset
+        return softmax_out, argmax_out, offset
 
 class Pose2AudioTransformer(nn.Module):
     def __init__(
@@ -264,15 +264,16 @@ class Pose2AudioTransformer(nn.Module):
     def forward(self, src, trg, src_mask = None):
         # if src_mask is None:
         #     src_mask = self.make_src_mask(src)
-        start_tokens = self.start_token_code.repeat(trg.shape[0], 1)  # Repeat the start token for each item in the batch
-        trg_with_start = torch.cat((start_tokens, trg), dim=1)
+        # start_tokens = self.start_token_code.repeat(trg.shape[0], 1)  # Repeat the start token for each item in the batch
+        # trg_with_start = torch.cat((start_tokens, trg), dim=1)
 
         src_mask = self.make_src_mask(src)
-        trg_mask = self.make_trg_mask(trg_with_start)
+        trg_mask = self.make_trg_mask(trg)
+        # trg_mask = self.make_trg_mask(trg_with_start)
 
         B, N, _, _ = src.shape
         enc_src = self.encoder(src.view(B, N, -1), src_mask)
-        out = self.decoder(trg_with_start, enc_src, src_mask, trg_mask)
+        out = self.decoder(trg, enc_src, src_mask, trg_mask)
         return out
 
     def make_trg_mask(self, trg):
@@ -282,32 +283,59 @@ class Pose2AudioTransformer(nn.Module):
         )
         return trg_mask.to(self.device)
 
+    # def generate(self, src, src_mask, max_length=100):
+    #     # Encode the source sequence using the given source mask
+    #     B, N, _, _ = src.shape
+    #     enc_src = self.encoder(src.view(B, N, -1), src_mask)
+        
+    #     # Initialize the target sequence with start tokens (e.g., all zeros)
+    #     # Assuming the codebook length is available as an attribute
+    #     trg = self.start_token_code.repeat(src.shape[0], max_length).to(self.device)  # Fill the entire sequence with start tokens initially
+        
+    #     for i in range(max_length):
+    #         # Create a target mask for the current sequence length
+    #         trg_mask = self.make_trg_mask(trg[:, :i+1])
+            
+    #         # Forward pass through the decoder
+    #         output, _ , offset= self.decoder(trg[:, :i+1], enc_src, src_mask, trg_mask)
+            
+    #         # Choose the token with the highest probability as the next token
+    #         next_token = output[:, i - offset, :].argmax(dim=-1)
+    #         # next_token = output[:, i, :].argmax(dim=-1)
+            
+    #         # Update the target sequence for the next iteration
+    #         trg[:, i] = next_token
+
+    #     final_trg = trg[:, 1:]
+
+    #     return final_trg  # This is your generated sequence
+
     def generate(self, src, src_mask, max_length=100):
-        # Encode the source sequence using the given source mask
         B, N, _, _ = src.shape
         enc_src = self.encoder(src.view(B, N, -1), src_mask)
+
+        # Initialize with a single start token for each sequence in the batch
+        trg = self.start_token_code.repeat(B, 1).to(self.device)
         
-        # Initialize the target sequence with start tokens (e.g., all zeros)
-        # Assuming the codebook length is available as an attribute
-        trg = self.start_token_code.repeat(src.shape[0], max_length).to(self.device)  # Fill the entire sequence with start tokens initially
-        
+        generated_tokens = []
+
         for i in range(max_length):
-            # Create a target mask for the current sequence length
-            trg_mask = self.make_trg_mask(trg[:, :i+1])
-            
-            # Forward pass through the decoder
-            output, _ , offset= self.decoder(trg[:, :i+1], enc_src, src_mask, trg_mask)
+            trg_mask = self.make_trg_mask(trg)
+            output_softmax, output_argmax, offset = self.decoder(trg, enc_src, src_mask, trg_mask)
             
             # Choose the token with the highest probability as the next token
-            next_token = output[:, i - offset, :].argmax(dim=-1)
-            # next_token = output[:, i, :].argmax(dim=-1)
-            
+            next_token = output_argmax[:, -1]  # Take the last token from the output sequence
+
+            # Store the generated tokens
+            generated_tokens.append(next_token.unsqueeze(1))
+
             # Update the target sequence for the next iteration
-            trg[:, i] = next_token
+            trg = torch.cat((trg, next_token.unsqueeze(1)), dim=1)
 
-        final_trg = trg[:, 1:]
+        # Concatenate along sequence length dimension to get final output
+        final_trg = torch.cat(generated_tokens, dim=1)
 
-        return final_trg  # This is your generated sequence
+        return final_trg
 
 
 

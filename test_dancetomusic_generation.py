@@ -39,6 +39,6 @@ pose_model.load_state_dict(torch.load(learned_weights, map_location=device))
 pose_model.to(device)
 
 audio_codes, pose, pose_mask, wav, wav_mask, _, _ = dataset[0]
-output = pose_model.generate(pose.unsqueeze(0).to(device), pose_mask.to(device), max_length = 759*2)
+output = pose_model.generate(pose.unsqueeze(0).to(device), pose_mask.to(device), max_length = 50)
 
 print(output[0].shape, audio_codes[0].shape)

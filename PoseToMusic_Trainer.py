@@ -63,6 +63,9 @@ if __name__ == "__main__":
     embed_size = train_dataset.data['poses'].shape[2] * train_dataset.data['poses'].shape[3]
     pose_model = Pose2AudioTransformer(codebook_size, src_pad_idx, trg_pad_idx, device=device, num_layers=4, heads = 8, embed_size=embed_size, dropout=0.1)
     pose_model.to(device)
+    
+    weights = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights/best_model_0.0152.pt'
+    pose_model.load_state_dict(torch.load(weights, map_location=device))
 
 
     learning_rate = 1e-4
