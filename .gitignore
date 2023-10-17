@@ -1,4 +1,5 @@
 weights/
 data/min_training_data/
 data/samples/
-my_logs/
+my_logs/data/test/
+data/test/
