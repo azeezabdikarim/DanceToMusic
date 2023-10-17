@@ -5,8 +5,7 @@ from copy_min_training_data import *
 import csv
 
 
-
-# python /Users/azeez/Documents/pose_estimation/DanceToMusic/data/building_tools/build_complete_dataset.py --input_csv /Users/azeez/Documents/pose_estimation/DanceToMusic/data/youtube_links/links_to_videos.csv --output_path /Users/azeez/Documents/pose_estimation/DanceToMusic/data/test
+# python /home/azeez/azeez_exd/misc/DanceToMusic/data/building_tools/build_complete_dataset.py --input_csv /home/azeez/azeez_exd/misc/DanceToMusic/data/youtube_links/youtube_links_test.csv --output_path /home/azeez/azeez_exd/misc/DanceToMusic/data/building_tools
 
 def download_and_clip_videos(input_csv, output_path, max_seq_len):    
     if output_path.rfind('/') != len(output_path)-1:
