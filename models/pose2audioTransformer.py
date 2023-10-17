@@ -283,33 +283,6 @@ class Pose2AudioTransformer(nn.Module):
         )
         return trg_mask.to(self.device)
 
-    # def generate(self, src, src_mask, max_length=100):
-    #     # Encode the source sequence using the given source mask
-    #     B, N, _, _ = src.shape
-    #     enc_src = self.encoder(src.view(B, N, -1), src_mask)
-        
-    #     # Initialize the target sequence with start tokens (e.g., all zeros)
-    #     # Assuming the codebook length is available as an attribute
-    #     trg = self.start_token_code.repeat(src.shape[0], max_length).to(self.device)  # Fill the entire sequence with start tokens initially
-        
-    #     for i in range(max_length):
-    #         # Create a target mask for the current sequence length
-    #         trg_mask = self.make_trg_mask(trg[:, :i+1])
-            
-    #         # Forward pass through the decoder
-    #         output, _ , offset= self.decoder(trg[:, :i+1], enc_src, src_mask, trg_mask)
-            
-    #         # Choose the token with the highest probability as the next token
-    #         next_token = output[:, i - offset, :].argmax(dim=-1)
-    #         # next_token = output[:, i, :].argmax(dim=-1)
-            
-    #         # Update the target sequence for the next iteration
-    #         trg[:, i] = next_token
-
-    #     final_trg = trg[:, 1:]
-
-    #     return final_trg  # This is your generated sequence
-
     def generate(self, src, src_mask, max_length=100):
         B, N, _, _ = src.shape
         enc_src = self.encoder(src.view(B, N, -1), src_mask)

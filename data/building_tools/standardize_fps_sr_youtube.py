@@ -30,7 +30,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Standardize dataset video fps and audio sample rate.')
 
     parser.add_argument('--dataset_path', default="", help='Path to dataset.')
-    parser.add_argument('--sample_rate', default=16000, type=int, help='Audio sample rate.')
+    parser.add_argument('--sample_rate', default=24000, type=int, help='Audio sample rate.')
     parser.add_argument('--fps', default=24, type=int, help='Video fps.')
 
     args = parser.parse_args()

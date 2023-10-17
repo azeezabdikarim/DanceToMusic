@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 # Example of command to execute from youtube with a specific sequence length (time in seconds)
 # python /Users/azeez/Documents/pose_estimation/Learning2Dance/youtube_dataset/scripts/download_database_split_seq_pytube.py --input_txts=/Users/azeez/Documents/pose_estimation/Learning2Dance/youtube_dataset/dataset/youtube_csv/afro_beats.csv --output_path=/Users/azeez/Documents/pose_estimation/Learning2Dance/youtube_dataset/dataset/samples/ --max_seq_len=10
+# python DanceToMusic/data/building_tools/download_database_split_seq_pytube.py --input_csv=DanceToMusic/data/youtube_links/links_to_videos.csv --output_path= DanceToMusic/data/samples --max_seq_len=10
 
 def calculate_sections(start_time, end_time, max_seq_len):
     start = datetime.strptime(start_time, "%H:%M:%S")
@@ -69,7 +70,7 @@ def clip_and_save_video(video_path, audio_path, start_time, end_time, output_pat
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Download youtube videos from a txt file and organize files in dataset style.')
-    parser.add_argument("--input_txts", required=True, nargs='+',
+    parser.add_argument("--input_csv", required=True, nargs='+',
                         help='path to txt file with url\'s of videos')
     parser.add_argument('--output_path', required=True,
                         help='Output path to create the dataset tree structure')
@@ -88,11 +89,11 @@ def main():
         output_path = output_path + '/'
     os.makedirs(args.output_path, exist_ok=True)
 
-    for input_txt in args.input_txts:
-        style = input_txt.split('/')[-1].split('.csv')[0]
+    for input_csv in args.input_csv:
+        style = input_csv.split('/')[-1].split('.csv')[0]
         print(f"Downloading videos from style: {style}")
 
-        with open(input_txt, mode='r') as infile:
+        with open(input_csv, mode='r') as infile:
             reader = csv.reader(infile)
             style_videos = [row for row in reader]
 

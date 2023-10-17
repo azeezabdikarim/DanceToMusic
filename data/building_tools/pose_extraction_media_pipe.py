@@ -3,10 +3,11 @@ import mediapipe as mp
 import numpy as np
 import os
 import argparse
+from moviepy.editor import VideoFileClip, AudioFileClip
 
 # python /Users/azeez/Documents/pose_estimation/Learning2Dance/youtube_dataset/scripts/pose_extraction_media_pipe.py --directory /Users/azeez/Documents/pose_estimation/Learning2Dance/youtube_dataset/dataset/samples
 
-def saveVideoKeypoints(video_path, pose_model, save_dir, frame_rate = 24):
+def saveVideoKeypoints(video_path, pose_model, save_dir, frame_rate = 24, mp_pose=None):
     # Initialize MediaPipe Drawing component
     mp_drawing = mp.solutions.drawing_utils
     # Extract video name for saving landmarks and rendered video
@@ -40,7 +41,7 @@ def saveVideoKeypoints(video_path, pose_model, save_dir, frame_rate = 24):
             break
         
         # Only process frames when the frame_count is a multiple of skip_frames
-        if frame_count % skip_frames == 0:
+        if (frame_count % skip_frames == 0):
             # Convert the BGR frame to RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             # Create a white background frame for the normlaized render
@@ -75,9 +76,12 @@ def saveVideoKeypoints(video_path, pose_model, save_dir, frame_rate = 24):
     
     # Add audio to the saved videos
     audio_path = os.path.join(save_dir,f"{video_name}.wav") 
-    print(audio_path)
     audio = AudioFileClip(audio_path)
     
+    orig_video = VideoFileClip(video_path)
+    orig_video = orig_video.set_audio(audio)
+    orig_video.write_videofile(video_path)
+
     video = VideoFileClip(color_vid_save_path)
     video = video.set_audio(audio)
     video.write_videofile(os.path.join(save_dir, f"{video_name}_with_audio.mp4"))
@@ -91,6 +95,9 @@ def saveVideoKeypoints(video_path, pose_model, save_dir, frame_rate = 24):
     final_landmarks_array = np.stack(landmarks_list, axis=0)
     pose_save_path = os.path.join(save_dir, f"{video_path.split('/')[-3]}_{video_name}_3D_landmarks.npy")
     np.save(pose_save_path, final_landmarks_array)
+
+    os.remove(normalized_vid_save_path)
+    os.remove(color_vid_save_path)
 
     print(f"Saved rendered video as {video_name}_render.mp4")
     print(f"Saved landmarks as {video_name}_landmarks.npy. The video was {len(landmarks_list)} frames long.)")
@@ -111,4 +118,4 @@ if __name__ == "__main__":
     for root, dirs, files in os.walk(directory):
         for d in dirs:
             vid_path = os.path.join(root, d, f"{d[:-7]}.mp4")
-            saveVideoKeypoints(vid_path, pose, save_dir=os.path.join(root, d))
+            saveVideoKeypoints(vid_path, pose, save_dir=os.path.join(root, d), mp_pose=mp_pose)
