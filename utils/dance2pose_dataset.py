@@ -7,6 +7,7 @@ import librosa
 import torchaudio
 from torch.utils.data import DataLoader, Dataset
 
+
 class DanceToMusic(Dataset):
     def __init__(self, directory, encoder = None, sample_rate=24000, device = torch.device("cpu")):
         self.device = device

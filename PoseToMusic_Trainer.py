@@ -36,13 +36,13 @@ def save_model(model, folder_path, loss, last_saved_model):
 if __name__ == "__main__":
 
     # assign GPU or CPU
-    # if torch.backends.mps.is_available():
-    #     device = torch.device("mps")
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    # device = torch.device("cpu")
+    device = torch.device("cpu")
 
 
     model_id = "facebook/encodec_24khz"
@@ -53,8 +53,8 @@ if __name__ == "__main__":
     
     sample_rate = 24000
     batch_size = 16
-    # data_dir = "/Users/azeez/Documents/pose_estimation/Learning2Dance/l2d_train_3D"
-    data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
+    data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
+    # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
     train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device)
     embed_size = train_dataset.data['poses'].shape[2] * train_dataset.data['poses'].shape[3]
 
@@ -82,7 +82,6 @@ if __name__ == "__main__":
     # weights = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights/best_model_0.0152.pt'
     # pose_model.load_state_dict(torch.load(weights, map_location=device))
 
-
     learning_rate = 1e-4
     # criterion = CrossEntropyLoss()
     criterion = torch.nn.NLLLoss()
@@ -90,12 +89,14 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(pose_model.parameters(), lr=learning_rate)
 
     # Set up for tracking the best model
-    weights_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/weights'
+    # weights_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/weights'
+    weights_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights'
     best_loss = float('inf')  # Initialize with a high value
     last_saved_model = ''
 
     writer = SummaryWriter(log_dir='./my_logs')
 
+    teacher_forcing_ratio = 0.5 # 50% of the time we will use teacher forcing
     num_epochs = 30000
     for epoch in range(num_epochs):
         pose_model.train()
@@ -105,36 +106,42 @@ if __name__ == "__main__":
             wav = wav.unsqueeze(1)
             pose = pose
             pose_mask = pose_mask
-            # encoding = encodec_model.encode(wav, wav_mask)
-            # audio_codes = encoding["audio_codes"]
             target = audio_codes.to(device)
             target_for_loss = target[:, :, 1:]
 
-            output_softmax, output_argmax, offset = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
+            input_for_next_step = target[:, :, 0]
+            outputs = []
+            batch_loss = 0
 
-            # Flatten both output and target for computing the loss
-            output_softmax = output_softmax[:, offset:, :]
-            reshaped_output_softmax = output_softmax.reshape(-1, output_softmax.shape[2]).shape
+            # output_softmax, output_argmax, offset = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
+            for t in range(1, target.shape[2]):
+                output_softmax, output_argmax, offset = pose_model(pose.to(device), input_for_next_step.to(device), src_mask=pose_mask.to(device))
+                log_softmax_output = torch.log(output_softmax)
+                log_softmax_output_reshape = log_softmax_output.view(-1, log_softmax_output.shape[2])
+                reshaped_target = target[:, :, t].reshape(-1).long()
+                time_step_loss = criterion(log_softmax_output_reshape, reshaped_target)
+                batch_loss += time_step_loss
 
-            # Flatten the target
-            # Expected dimension: [24032]
-            reshaped_target = target_for_loss.reshape(-1).long()
+                use_teacher_forcing = np.random.random() < teacher_forcing_ratio
 
-            # Take the log of softmax output
-            # Expected dimension: [16, 1503, 1024]
-            log_softmax_output = torch.log(output_softmax)  
+                # Get the next input (New Code)
+                if use_teacher_forcing:
+                    input_for_next_step = target[:, :, t]  # Ground truth
+                else:
+                    input_for_next_step = output_softmax.argmax(dim=2)  # Model's own output
 
-            # Flatten the log softmax output for loss computation
-            # Expected dimension: [24048, 1024]
-            log_softmax_output_reshape = log_softmax_output.view(-1, log_softmax_output.shape[2])  
+                outputs.append(output_softmax)
 
-            # Compute loss
-            loss = criterion(log_softmax_output_reshape, reshaped_target)
+            # Compute the total loss for this batch (New Code)
+            batch_loss /= target.shape[2]  # Average over time steps
+
+            # Backpropagation and optimization (New Code)
             optimizer.zero_grad()
-            loss.backward()
+            batch_loss.backward()
             optimizer.step()
             
-            epoch_loss += loss.item()  # Accumulate loss
+            epoch_loss += batch_loss.item()  # Accumulate loss
+
         # Calculate average epoch loss
         avg_epoch_loss = epoch_loss / len(train_loader)
     

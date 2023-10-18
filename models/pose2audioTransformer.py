@@ -282,8 +282,8 @@ class Pose2AudioTransformer(nn.Module):
             B, 1, seq_length, seq_length
         )
         return trg_mask.to(self.device)
-    
-    def generate(self, src, src_mask, max_length=100, temperature=1.0):
+
+    def generate(self, src, src_mask, max_length=100):
         B, N, _, _ = src.shape
         enc_src = self.encoder(src.view(B, N, -1), src_mask)
 
@@ -296,14 +296,8 @@ class Pose2AudioTransformer(nn.Module):
             trg_mask = self.make_trg_mask(trg)
             output_softmax, output_argmax, offset = self.decoder(trg, enc_src, src_mask, trg_mask)
             
-            # Applying temperature to logits (not the softmax output)
-            logits = output_softmax / temperature
-            
-            # Recompute softmax with temperature scaling
-            softmax_temp = F.softmax(logits, dim=-1)
-            
             # Choose the token with the highest probability as the next token
-            next_token = torch.argmax(softmax_temp, dim=-1)[:, -1]  # Take the last token from the output sequence
+            next_token = output_argmax[:, -1]  # Take the last token from the output sequence
 
             # Store the generated tokens
             generated_tokens.append(next_token.unsqueeze(1))
@@ -315,33 +309,6 @@ class Pose2AudioTransformer(nn.Module):
         final_trg = torch.cat(generated_tokens, dim=1)
 
         return final_trg
-
-    # def generate(self, src, src_mask, max_length=100):
-    #     B, N, _, _ = src.shape
-    #     enc_src = self.encoder(src.view(B, N, -1), src_mask)
-
-    #     # Initialize with a single start token for each sequence in the batch
-    #     trg = self.start_token_code.repeat(B, 1).to(self.device)
-        
-    #     generated_tokens = []
-
-    #     for i in range(max_length):
-    #         trg_mask = self.make_trg_mask(trg)
-    #         output_softmax, output_argmax, offset = self.decoder(trg, enc_src, src_mask, trg_mask)
-            
-    #         # Choose the token with the highest probability as the next token
-    #         next_token = output_argmax[:, -1]  # Take the last token from the output sequence
-
-    #         # Store the generated tokens
-    #         generated_tokens.append(next_token.unsqueeze(1))
-
-    #         # Update the target sequence for the next iteration
-    #         trg = torch.cat((trg, next_token.unsqueeze(1)), dim=1)
-
-    #     # Concatenate along sequence length dimension to get final output
-    #     final_trg = torch.cat(generated_tokens, dim=1)
-
-    #     return final_trg
 
 
 
