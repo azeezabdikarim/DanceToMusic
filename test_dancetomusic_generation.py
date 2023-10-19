@@ -27,14 +27,14 @@ codebook_size = encodec_model.quantizer.codebook_size
 encodec_model.to(device)
 sample_rate = 24000
 
-data_dir = "/home/azeez/azeez_exd/misc/DanceToMusic/data/samples"
+data_dir = "DanceToMusic/data/samples/5sec_min_data"
 dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device)
 
 src_pad_idx = 0
 trg_pad_idx = 0
-learned_weights = '/home/azeez/azeez_exd/misc/DanceToMusic/weights/best_model_0.0044.pt' 
+learned_weights = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights/5_sec_best_model_weights_loss_6.733452348148122.pth' 
 embed_size = dataset.data['poses'].shape[2] * dataset.data['poses'].shape[3]
-pose_model = Pose2AudioTransformer(codebook_size, src_pad_idx, trg_pad_idx, device=device, num_layers=4, heads = 8, embed_size=embed_size, dropout=0.1)
+pose_model = Pose2AudioTransformer(codebook_size, src_pad_idx, trg_pad_idx, device=device, num_layers=2, heads = 2, embed_size=embed_size, dropout=0.1)
 pose_model.load_state_dict(torch.load(learned_weights, map_location=device))
 pose_model.to(device)
 
