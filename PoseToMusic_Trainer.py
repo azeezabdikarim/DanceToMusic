@@ -21,8 +21,8 @@ from torch.utils.data import random_split
 
 
 # Define a function to save the model and delete the last saved model
-def save_model(model, folder_path, loss, last_saved_model):
-    model_name = f"best_model_{loss:.4f}.pt"
+def save_model(model, folder_path, loss, last_saved_model, name = ''):
+    model_name = f"{name}_best_model_{loss:.4f}.pt"
     model_path = os.path.join(folder_path, model_name)
     torch.save(model.state_dict(), model_path)
     if last_saved_model:
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     
     sample_rate = 24000
     batch_size = 16
-    
+
     data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
     # data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
     # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         # Check if this epoch resulted in a better model
         if avg_epoch_loss < best_loss:
             best_loss = avg_epoch_loss
-            last_saved_model = save_model(pose_model, weights_dir, best_loss, last_saved_model)
+            last_saved_model = save_model(pose_model, weights_dir, best_loss, last_saved_model, name='5_sec')
 
         pose_model.eval()
         val_loss = 0
