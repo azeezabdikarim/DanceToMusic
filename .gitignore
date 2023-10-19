@@ -4,3 +4,5 @@ data/samples/
 my_logs/data/test/
 data/test/
 my_logs/
+utils/__pycache__/
+data/building_tools/__pycache__/

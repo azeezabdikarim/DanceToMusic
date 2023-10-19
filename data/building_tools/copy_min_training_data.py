@@ -4,7 +4,7 @@ import numpy as np
 import librosa  
 import soundfile as sf
 
-# python /Users/azeez/Documents/pose_estimation/MusicGen/data/building_tools/copy_min_training_data.py --data_dir=/Users/azeez/Documents/pose_estimation/Learning2Dance/youtube_dataset/dataset/samples --output_dir=/Users/azeez/Documents/pose_estimation/MusicGen/data/min_training_data
+# python /Users/azeez/Documents/pose_estimation/DanceToMusic/data/building_tools/copy_min_training_data.py --data_dir=/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_samples --output_dir=/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data
 def parse_args():
     parser = argparse.ArgumentParser(description='Download youtube videos from a txt file and organize files in dataset style.')
     parser.add_argument("--data_dir", required=True,
@@ -25,14 +25,14 @@ def main():
     for root, dirs, files in os.walk(data_dir):
         for d in dirs:
             if 'error' not in d:
-                pose_path = os.path.join(root, d, f"samples_{d[:-7]}_3D_landmarks.npy")
+                pose_path = os.path.join(root, d, f"{root.split('/')[-1]}_{d[:-7]}_3D_landmarks.npy")
                 wav_path = os.path.join(root, d, f"{d[:-7]}.wav")
 
                 sample_poses = np.load(pose_path)
                 wav, _ = librosa.load(wav_path, sr=sr)
 
                 sample_output_dir = os.path.join(output_path, d)
-                pose_output_path = os.path.join(sample_output_dir, f"samples_{d[:-7]}_3D_landmarks.npy")
+                pose_output_path = os.path.join(sample_output_dir, f"{root.split('/')[-1]}_{d[:-7]}_3D_landmarks.npy")
                 wav_output_path = os.path.join(sample_output_dir, f"{d[:-7]}.wav")
 
                 # Create the output directory if it doesn't exist
