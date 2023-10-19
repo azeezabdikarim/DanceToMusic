@@ -42,7 +42,7 @@ class DanceToMusic(Dataset):
         for root, dirs, files in os.walk(directory):
             for d in dirs:
                 if 'error' not in d:
-                    pose_path = os.path.join(root, d, f"samples_{d[:-7]}_3D_landmarks.npy")
+                    pose_path = os.path.join(root, d, f"{root.split('/')[-1]}_{d[:-7]}_3D_landmarks.npy")
                     wav_path = os.path.join(root, d, f"{d[:-7]}.wav")
 
                     # poses.append(self._buildPoses(pose_dir_path))

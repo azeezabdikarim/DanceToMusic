@@ -53,7 +53,9 @@ if __name__ == "__main__":
     
     sample_rate = 24000
     batch_size = 16
-    data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
+    
+    data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
+    # data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
     # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
     train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device)
     embed_size = train_dataset.data['poses'].shape[2] * train_dataset.data['poses'].shape[3]

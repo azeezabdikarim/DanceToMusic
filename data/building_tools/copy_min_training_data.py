@@ -32,7 +32,7 @@ def main():
                 wav, _ = librosa.load(wav_path, sr=sr)
 
                 sample_output_dir = os.path.join(output_path, d)
-                pose_output_path = os.path.join(sample_output_dir, f"{root.split('/')[-1]}_{d[:-7]}_3D_landmarks.npy")
+                pose_output_path = os.path.join(sample_output_dir, f"{sample_output_dir.split('/')[-2]}_{d[:-7]}_3D_landmarks.npy")
                 wav_output_path = os.path.join(sample_output_dir, f"{d[:-7]}.wav")
 
                 # Create the output directory if it doesn't exist
