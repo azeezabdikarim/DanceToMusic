@@ -199,9 +199,11 @@ class Decoder(nn.Module):
         softmax_out = F.softmax(out, dim=-1)
         if softmax_out.shape[1] > 1:  
             final_output_softmax = softmax_out[:, 1:, :]
+            logits_out = out[:, 1:, :]
             offset = 1
         else:
             final_output_softmax = softmax_out # special situation when start token is the only value
+            logits_out = out
             offset = 0 
 
         # Finding the index with maximum probability
@@ -209,7 +211,7 @@ class Decoder(nn.Module):
         final_output_argmax = argmax_out[:, 1:]     # Remove the start token from the output
 
         
-        return softmax_out, argmax_out, offset
+        return softmax_out, argmax_out, offset, logits_out
 
 class Pose2AudioTransformer(nn.Module):
     def __init__(
@@ -294,10 +296,10 @@ class Pose2AudioTransformer(nn.Module):
 
         for i in range(max_length):
             trg_mask = self.make_trg_mask(trg)
-            output_softmax, output_argmax, offset = self.decoder(trg, enc_src, src_mask, trg_mask)
+            output_softmax, output_argmax, offset, logits = self.decoder(trg, enc_src, src_mask, trg_mask)
             
             # Apply temperature to logits and re-normalize to probabilities
-            output_softmax = F.softmax(output_softmax[:, -1, :] / temperature, dim=-1)
+            output_softmax = F.softmax(logits[:, -1, :] / temperature, dim=-1)
             
             # Sample from the softmax output
             next_token = torch.multinomial(output_softmax, 1).squeeze(-1)

@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
             # output_softmax, output_argmax, offset = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
             for t in range(1, target.shape[2]):
-                output_softmax, output_argmax, offset = pose_model(pose.to(device), input_for_next_step.to(device), src_mask=pose_mask.to(device))
+                output_softmax, output_argmax, offset, _ = pose_model(pose.to(device), input_for_next_step.to(device), src_mask=pose_mask.to(device))
                 log_softmax_output = torch.log(output_softmax)
                 log_softmax_output_reshape = log_softmax_output.view(-1, log_softmax_output.shape[2])
                 reshaped_target = target[:, :, t].reshape(-1).long()
@@ -166,7 +166,7 @@ if __name__ == "__main__":
                     target = audio_codes.to(device)
                     target_for_loss = target[:, :, 1:]
 
-                    output_softmax, output_argmax, offset = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
+                    output_softmax, output_argmax, offset, _ = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
 
                     output_softmax = output_softmax[:, offset:, :]
                     reshaped_output_softmax = output_softmax.reshape(-1, output_softmax.shape[2])
