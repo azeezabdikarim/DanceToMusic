@@ -9,9 +9,9 @@ from torch.utils.data import DataLoader, Dataset
 
 
 class DanceToMusic(Dataset):
-    def __init__(self, directory, encoder = None, sample_rate=24000, device = torch.device("cpu")):
+    def __init__(self, directory, encoder = None, sample_rate=24000, device = torch.device("cpu"), num_samples = None):
         self.device = device
-        self.raw_data = self._load_data(directory, sample_rate)
+        self.raw_data = self._load_data(directory, sample_rate, num_samples)
         self.data = self._buildData(self.raw_data)
         self.encoder = encoder
         if encoder is not None:
@@ -34,11 +34,12 @@ class DanceToMusic(Dataset):
         audio_codes = self.data['audio_codes'][idx]
         return [audio_codes, pose, pose_mask, wav, wav_mask, wav_path, sample_rate]
 
-    def _load_data(self, directory, sr):
+    def _load_data(self, directory, sr, num_samples):
         poses = []
         wavs = []
         wav_paths = []
         sample_rate = []
+        count_loaded_sample = 0
         for root, dirs, files in os.walk(directory):
             for d in dirs:
                 if 'error' not in d:
@@ -51,6 +52,9 @@ class DanceToMusic(Dataset):
                     sample_rate.append(sr)
                     wav_paths.append(wav_path)
                     wavs.append(wav)
+                    count_loaded_sample += 1
+                    if count_loaded_sample == num_samples:
+                        break
 
         ret = {
             "poses": poses,

@@ -54,13 +54,13 @@ if __name__ == "__main__":
     # processor = AutoProcessor.from_pretrained(model_id)
     
     sample_rate = 24000
-    batch_size = 8
+    batch_size = 4
 
     data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
     # data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
     # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
     # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/5sec_samples/samples'
-    train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device)
+    train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device, num_samples = 10)
     embed_size = train_dataset.data['poses'].shape[2] * train_dataset.data['poses'].shape[3]
 
 
@@ -87,8 +87,7 @@ if __name__ == "__main__":
                                       heads = 2, 
                                       embed_size=embed_size, 
                                       dropout=0.1, 
-                                      window_size=64,
-                                      use_global_token=True)
+                                      window_size=64)
     pose_model.to(device)
     
     # weights = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights/best_model_0.0152.pt'
@@ -115,47 +114,47 @@ if __name__ == "__main__":
         pose_model.train()
         epoch_loss = 0
         for i, (audio_codes, pose, pose_mask, wav, wav_mask, _, _) in tqdm(enumerate(train_loader), total=len(train_loader)):
-            # Forward pass
             wav = wav.unsqueeze(1)
             pose = pose
             pose_mask = pose_mask
             target = audio_codes.to(device)
             target_for_loss = target[:, :, 1:]
 
-            input_for_next_step = target[:, :, 0]
+            # Initialize with start token
+            input_for_next_step = target[:, :, 0:1]  # Shape: [B, 1]
             outputs = []
             batch_loss = 0
 
-            # output_softmax, output_argmax, offset = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
             for t in range(1, target.shape[2]):
-                output_softmax, output_argmax, offset, _ = pose_model(pose.to(device), input_for_next_step.to(device), src_mask=pose_mask.to(device))
+                output_softmax, output_argmax, offset, _ = pose_model(pose.to(device), input_for_next_step.squeeze(1), src_mask=pose_mask.to(device))
+                output_softmax = output_softmax
                 log_softmax_output = torch.log(output_softmax)
-                log_softmax_output_reshape = log_softmax_output.view(-1, log_softmax_output.shape[2])
+                # log_softmax_output_reshape = log_softmax_output.view(-1, log_softmax_output.shape[2])
                 reshaped_target = target[:, :, t].reshape(-1).long()
-                time_step_loss = criterion(log_softmax_output_reshape, reshaped_target)
+                time_step_loss = criterion(log_softmax_output[:,t-1,:], reshaped_target)
+                # time_step_loss = criterion(log_softmax_output_reshape, reshaped_target)
                 batch_loss += time_step_loss
 
                 use_teacher_forcing = np.random.random() < teacher_forcing_ratio
 
-                # Get the next input (New Code)
+                # Update the input sequence for the next iteration
                 if use_teacher_forcing:
-                    input_for_next_step = target[:, :, t]  # Ground truth
+                    next_input = target[:, :, t:t+1]  # Ground truth
                 else:
-                    input_for_next_step = output_softmax.argmax(dim=2)  # Model's own output
+                    next_input = output_softmax.argmax(dim=2).unsqueeze(1)  # Model's own output
+
+                # Concatenate with the existing sequence
+                input_for_next_step = torch.cat([input_for_next_step, next_input], dim=2)
 
                 outputs.append(output_softmax)
 
-            # Compute the total loss for this batch (New Code)
-            batch_loss /= target.shape[2]  # Average over time steps
-
-            # Backpropagation and optimization (New Code)
+            batch_loss /= target.shape[2]
             optimizer.zero_grad()
             batch_loss.backward()
             optimizer.step()
             
-            epoch_loss += batch_loss.item()  # Accumulate loss
+            epoch_loss += batch_loss.item()
 
-        # Calculate average epoch loss
         avg_epoch_loss = epoch_loss / len(train_loader)
     
         # Check if this epoch resulted in a better model
