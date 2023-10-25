@@ -44,7 +44,7 @@ if __name__ == "__main__":
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    # device = torch.device("cpu")
+    device = torch.device("cpu")
 
 
     model_id = "facebook/encodec_24khz"
@@ -56,10 +56,10 @@ if __name__ == "__main__":
     sample_rate = 24000
     batch_size = 8
 
-    # data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
+    data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
     # data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
     # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
-    data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/5sec_samples/samples'
+    # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/5sec_samples/samples'
     train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device)
     embed_size = train_dataset.data['poses'].shape[2] * train_dataset.data['poses'].shape[3]
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     src_pad_idx = 0
     trg_pad_idx = 0
     # device = torch.device("cpu")
-    pose_model = Pose2AudioTransformer(codebook_size, src_pad_idx, trg_pad_idx, device=device, num_layers=3, heads = 2, embed_size=embed_size, dropout=0.1)
+    pose_model = Pose2AudioTransformer(codebook_size, src_pad_idx, trg_pad_idx, device=device, num_layers=4, heads = 4, embed_size=embed_size, dropout=0.1)
     pose_model.to(device)
     
     # weights = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights/best_model_0.0152.pt'
@@ -94,12 +94,16 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(pose_model.parameters(), lr=learning_rate)
 
     # Set up for tracking the best model
-    weights_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/weights'
-    # weights_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights'
+    # weights_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/weights'
+    weights_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights'
     best_loss = float('inf')  # Initialize with a high value
     last_saved_model = ''
 
     writer = SummaryWriter(log_dir='./my_logs')
+
+    accumulation_steps = 32  # Number of mini-batches for gradient accumulation
+    samples_processed = 0  # Keep track of samples processed so far within accumulation steps
+    accumulated_loss = 0  # Initialize accumulated loss
 
     teacher_forcing_ratio = 0.5 # 50% of the time we will use teacher forcing
     val_epoch_interval = 5
@@ -118,10 +122,17 @@ if __name__ == "__main__":
             input_for_next_step = target[:, :, 0]
             outputs = []
             batch_loss = 0
+            
+            src = pose.to(device)
+            enc_mask = pose_model.make_src_mask(src)
+            trg_mask = pose_model.make_trg_mask(input_for_next_step.to(device))
 
-            # output_softmax, output_argmax, offset = pose_model(pose.to(device), target.squeeze(1).to(device), src_mask=pose_mask.to(device))
+            B, N, _, _ = pose.shape
+            enc_context = pose_model.encoder(src.view(B, N, -1), enc_mask)
+
             for t in range(1, target.shape[2]):
-                output_softmax, output_argmax, offset, _ = pose_model(pose.to(device), input_for_next_step.to(device), src_mask=pose_mask.to(device))
+                output_softmax, output_argmax, offset, _ = pose_model.decoder(input_for_next_step.to(device), enc_context, enc_mask, trg_mask)
+                # output_softmax, output_argmax, offset, _ = pose_model(pose.to(device), input_for_next_step.to(device), src_mask=pose_mask.to(device))
                 log_softmax_output = torch.log(output_softmax)
                 log_softmax_output_reshape = log_softmax_output.view(-1, log_softmax_output.shape[2])
                 reshaped_target = target[:, :, t].reshape(-1).long()
@@ -139,17 +150,26 @@ if __name__ == "__main__":
                 outputs.append(output_softmax)
 
             # Compute the total loss for this batch (New Code)
-            batch_loss /= target.shape[2]  # Average over time steps
-
-            # Backpropagation and optimization (New Code)
-            optimizer.zero_grad()
-            batch_loss.backward()
-            optimizer.step()
+            batch_loss /= accumulation_steps  
             
-            epoch_loss += batch_loss.item()  # Accumulate loss
+            # Backpropagate the gradients
+            batch_loss.backward()
+
+            # Accumulate the batch loss
+            accumulated_loss += batch_loss.item() * accumulation_steps  # De-normalize
+            samples_processed += pose.size(0)
+            # Update after accumulation_steps
+            if samples_processed >= accumulation_steps:
+                optimizer.step()  # Update weights
+                optimizer.zero_grad()  # Clear gradients
+                
+                # Update epoch loss
+                epoch_loss += accumulated_loss
+                accumulated_loss = 0  # Reset accumulated loss
+                samples_processed = 0
 
         # Calculate average epoch loss
-        avg_epoch_loss = epoch_loss / len(train_loader)
+        avg_epoch_loss = epoch_loss / (len(train_loader) // accumulation_steps) 
     
         # Check if this epoch resulted in a better model
         if avg_epoch_loss < best_loss:
