@@ -44,7 +44,7 @@ if __name__ == "__main__":
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    device = torch.device("cpu")
+    # device = torch.device("cpu")
 
 
     model_id = "facebook/encodec_24khz"
@@ -56,11 +56,11 @@ if __name__ == "__main__":
     sample_rate = 24000
     batch_size = 4
 
-    data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
+    # data_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/data/samples/5sec_min_data'
     # data_dir = "/Users/azeez/Documents/pose_estimation/DanceToMusic/data/min_training_data"
     # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/samples'
-    # data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/5sec_samples/samples'
-    train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device, num_samples = 10)
+    data_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/data/5sec_samples/samples'
+    train_dataset = DanceToMusic(data_dir, encoder = encodec_model, sample_rate = sample_rate, device=device)
     embed_size = train_dataset.data['poses'].shape[2] * train_dataset.data['poses'].shape[3]
 
 
@@ -100,8 +100,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(pose_model.parameters(), lr=learning_rate)
 
     # Set up for tracking the best model
-    # weights_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/weights'
-    weights_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights'
+    weights_dir = '/home/azeez/azeez_exd/misc/DanceToMusic/weights'
+    # weights_dir = '/Users/azeez/Documents/pose_estimation/DanceToMusic/weights'
     best_loss = float('inf')  # Initialize with a high value
     last_saved_model = ''
 
@@ -141,10 +141,10 @@ if __name__ == "__main__":
                 if use_teacher_forcing:
                     next_input = target[:, :, t:t+1]  # Ground truth
                 else:
-                    next_input = output_softmax.argmax(dim=2).unsqueeze(1)  # Model's own output
+                    next_input = output_softmax.argmax(dim=2)[:,t-1].unsqueeze(1)  # Model's own output
 
                 # Concatenate with the existing sequence
-                input_for_next_step = torch.cat([input_for_next_step, next_input], dim=2)
+                input_for_next_step = torch.cat([input_for_next_step, next_input.reshape(batch_size,1,1)], dim=2)
 
                 outputs.append(output_softmax)
 
