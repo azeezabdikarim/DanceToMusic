@@ -49,8 +49,9 @@ conda activate dance2music
 python data/building_tools/build_complete_dataset.py --output_path data/samples/ --input_csv data/youtube_links/youtube_links_test.csv  --max_seq_len 5 --fps 24
 
 ```
+## Usage
 
-## Training Data Exploration
+## Dataset
 
 ## Model Architecture 
 
