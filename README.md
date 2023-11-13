@@ -90,6 +90,19 @@ Training stops once the validation loss platues, as I want to avoid overfitting 
 ## Results
 Currently the results are poor. An example is provided bellow. The audio generated is slightly better than random noise as we can hear some musicality, however it doesn't come close to obviously matching the movement of the dancer.
 
+<figure style="float: left; margin-right: 20px;">
+  <video src="assets/sample_output_video_original.mp4" width="400" height="300" controls="controls"></video>
+  <figcaption>Original Audio</figcaption>
+</figure>
+
+<figure style="float: left;">
+  <video src="assets/sample_output_video.mp4" width="400" height="300" controls="controls"></video>
+  <figcaption>Generated Audio</figcaption>
+</figure>
+
+<div style="clear: both;"></div>
+
+
 ## Next Steps
 I have a few theories for why the model struggles to produce suitable music to match the subjects movements, with the majority focused on how to improve the quality of the training data.
 
