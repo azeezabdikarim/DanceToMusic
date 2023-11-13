@@ -90,6 +90,8 @@ Training stops once the validation loss platues, as I want to avoid overfitting 
 ## Results
 Currently the results are poor. An example is provided bellow. The audio generated is slightly better than random noise as we can hear some musicality, however it doesn't come close to obviously matching the movement of the dancer.
 
+![My Generated Audio](assets/generated_audio.wav)
+
 <figure style="float: left; margin-right: 20px;">
   <video src="assets/sample_output_video_original.mp4" width="400" height="300" controls="controls"></video>
   <figcaption>Original Audio</figcaption>
